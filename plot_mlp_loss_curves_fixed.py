@@ -15,7 +15,7 @@ Data source priority
 
 Accepted file formats
 ---------------------
-- JSON/PKL with list[dict]: {"strategy": "...", "train_loss": [...]}
+- JSON/PKL with list[dict]: {"strategy": "...", "model": "...", "train_loss": [...]}
 - CSV with columns: strategy, epoch, train_loss
 """
 
@@ -101,13 +101,16 @@ def _normalize_raw_curves(raw: object) -> list[dict]:
         if not isinstance(entry, dict):
             continue
         strategy = entry.get("strategy") or entry.get("name")
+        model = entry.get("model") or "MLP"
         train_loss = entry.get("train_loss")
         if strategy is None or train_loss is None:
             continue
         train_loss = list(train_loss)
         if len(train_loss) == 0:
             continue
-        normalized.append({"strategy": str(strategy), "train_loss": train_loss})
+        normalized.append(
+            {"strategy": str(strategy), "model": str(model), "train_loss": train_loss}
+        )
 
     if not normalized:
         raise ValueError("No valid curve entries found in data source.")
@@ -124,7 +127,14 @@ def _load_from_csv(path: Path) -> list[dict]:
     df = df.sort_values(["strategy", "epoch"])
     curves = []
     for strategy, part in df.groupby("strategy"):
-        curves.append({"strategy": strategy, "train_loss": part["train_loss"].tolist()})
+        model = (
+            str(part["model"].iloc[0])
+            if "model" in part.columns and len(part["model"]) > 0
+            else "MLP"
+        )
+        curves.append(
+            {"strategy": strategy, "model": model, "train_loss": part["train_loss"].tolist()}
+        )
     return curves
 
 

@@ -15,7 +15,7 @@ Data source priority
 
 Accepted file formats
 ---------------------
-- JSON/PKL with list[dict]: {"name": "...", "train_loss": [...], "val_loss": [...]}
+- JSON/PKL with list[dict]: {"strategy": "...", "model": "...", "train_loss": [...], "val_loss": [...]}
 - CSV with columns: run, epoch, train_loss[, val_loss]
 """
 
@@ -42,7 +42,8 @@ def _normalize_raw_curves(raw: object) -> list[dict]:
 
         train_loss = entry.get("train_loss", [])
         val_loss = entry.get("val_loss", [])
-        name = entry.get("name") or entry.get("strategy") or f"Run {i+1}"
+        strategy = entry.get("strategy") or entry.get("name") or f"Run {i+1}"
+        model = entry.get("model") or "LSTM"
 
         train_loss = list(train_loss) if train_loss is not None else []
         val_loss = list(val_loss) if val_loss is not None else []
@@ -50,7 +51,14 @@ def _normalize_raw_curves(raw: object) -> list[dict]:
         if len(train_loss) == 0 and len(val_loss) == 0:
             continue
 
-        normalized.append({"name": str(name), "train_loss": train_loss, "val_loss": val_loss})
+        normalized.append(
+            {
+                "strategy": str(strategy),
+                "model": str(model),
+                "train_loss": train_loss,
+                "val_loss": val_loss,
+            }
+        )
 
     if not normalized:
         raise ValueError("No valid curve entries found in data source.")
@@ -69,7 +77,8 @@ def _load_from_csv(path: Path) -> list[dict]:
     df = df.sort_values(["run", "epoch"])
     for run, part in df.groupby("run"):
         entry = {
-            "name": str(run),
+            "strategy": str(run),
+            "model": str(part["model"].iloc[0]) if "model" in part.columns and len(part["model"]) > 0 else "LSTM",
             "train_loss": part["train_loss"].tolist(),
             "val_loss": part["val_loss"].tolist() if "val_loss" in part.columns else [],
         }
@@ -133,7 +142,9 @@ def main() -> None:
     for i, curve in enumerate(curves):
         train_loss = curve.get("train_loss", [])
         val_loss = curve.get("val_loss", [])
-        name = curve.get("name", f"Run {i+1}")
+        strategy = curve.get("strategy", curve.get("name", f"Run {i+1}"))
+        model = curve.get("model", "LSTM")
+        name = f"{strategy} ({model})"
         color = colors[i % len(colors)]
 
         if len(train_loss) > 0:

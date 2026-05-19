@@ -164,6 +164,23 @@ def _print_summary(title: str, df: pd.DataFrame) -> None:
         print(f"  Cold-start CVRMSE: {df[df['cold_start']]['cvrmse'].mean():.2f}%")
 
 
+def _mean_or_nan(s: pd.Series) -> float:
+    return float(s.mean()) if len(s) > 0 else float("nan")
+
+
+def _summary_row(name: str, df: pd.DataFrame) -> dict[str, float | str]:
+    warm_df = df[~df["cold_start"]] if "cold_start" in df.columns else pd.DataFrame()
+    cold_df = df[df["cold_start"]] if "cold_start" in df.columns else pd.DataFrame()
+
+    return {
+        "Strategy": name,
+        "Overall": _mean_or_nan(df["mae"]),
+        "Warm": _mean_or_nan(warm_df["mae"]),
+        "Cold": _mean_or_nan(cold_df["mae"]),
+        "CVRMSE (%)": _mean_or_nan(df["cvrmse"]),
+    }
+
+
 def run_tree_baselines(seed: int = 42) -> None:
     if "client_data" not in globals() or "usable_bids" not in globals() or "TARGET" not in globals():
         raise RuntimeError("Missing required globals: client_data, usable_bids, TARGET")
@@ -208,28 +225,14 @@ def run_tree_baselines(seed: int = 42) -> None:
     _print_summary("Centralized LightGBM", globals()["df_central_lgbm"])
     _print_summary("Local-only LightGBM", globals()["df_local_lgbm"])
 
-    # Compact comparison table
-    table_rows = []
-    for name, df_res in [
-        ("C. Centralized-XGB", globals()["df_central_xgb"]),
-        ("0. Local-only-XGB", globals()["df_local_xgb"]),
-        ("C. Centralized-LGBM", globals()["df_central_lgbm"]),
-        ("0. Local-only-LGBM", globals()["df_local_lgbm"]),
-    ]:
-        row = {
-            "Strategy": name,
-            "MAE": df_res["mae"].mean(),
-            "RMSE": df_res["rmse"].mean(),
-            "CVRMSE (%)": df_res["cvrmse"].mean(),
-            "WAPE (%)": df_res["wape"].mean(),
-        }
-        if "cold_start" in df_res.columns and df_res["cold_start"].any():
-            row["Cold-start MAE"] = df_res[df_res["cold_start"]]["mae"].mean()
-        else:
-            row["Cold-start MAE"] = np.nan
-        table_rows.append(row)
-
-    globals()["df_tree_baseline_summary"] = pd.DataFrame(table_rows).sort_values("MAE")
+    globals()["df_tree_baseline_summary"] = pd.DataFrame(
+        [
+            _summary_row("C. Centralized-XGB", globals()["df_central_xgb"]),
+            _summary_row("0. Local-only-XGB", globals()["df_local_xgb"]),
+            _summary_row("C. Centralized-LGBM", globals()["df_central_lgbm"]),
+            _summary_row("0. Local-only-LGBM", globals()["df_local_lgbm"]),
+        ]
+    ).sort_values("Overall", ascending=True)
     print("\nTree baseline summary:")
     print(globals()["df_tree_baseline_summary"].to_string(index=False))
 

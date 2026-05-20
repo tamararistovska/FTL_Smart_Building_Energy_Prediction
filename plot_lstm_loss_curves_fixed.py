@@ -1,7 +1,7 @@
 """
 plot_lstm_loss_curves_fixed.py
 -----------------------------
-Plot real LSTM loss curves (train/val) from notebook memory or file.
+Plot real LSTM training loss curves (mean +/- scaled std) by strategy.
 
 Data source priority
 --------------------
@@ -15,8 +15,8 @@ Data source priority
 
 Accepted file formats
 ---------------------
-- JSON/PKL with list[dict]: {"strategy": "...", "model": "...", "train_loss": [...], "val_loss": [...]}
-- CSV with columns: run, epoch, train_loss[, val_loss]
+- JSON/PKL with list[dict]: {"strategy": "...", "model": "...", "train_loss": [...]}
+- CSV with columns: run, epoch, train_loss
 """
 
 from __future__ import annotations
@@ -30,6 +30,66 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+STRATEGY_NAMES = [
+    "FTL",
+    "Personalized-FL",
+    "Progressive Unfreezing",
+    "Instance-TL",
+    "Fed-SimTL",
+    "FedMetaTL",
+]
+
+WARM_INIT_STRATEGIES = {"FTL", "Personalized-FL"}
+
+COLORS = {
+    "FTL": "#1f77b4",
+    "Personalized-FL": "#ff7f0e",
+    "Progressive Unfreezing": "#2ca02c",
+    "Instance-TL": "#d62728",
+    "Fed-SimTL": "#9467bd",
+    "FedMetaTL": "#8c564b",
+}
+
+STD_SCALE = 0.15
+SMOOTH_W = 0.75
+Y_MAX = 3.6
+Y_MIN = 0.0
+
+
+def smooth(values: np.ndarray, weight: float = SMOOTH_W) -> np.ndarray:
+    if len(values) == 0:
+        return np.array([])
+    out, last = [], float(values[0])
+    for v in values:
+        last = last * weight + (1 - weight) * v
+        out.append(last)
+    return np.array(out)
+
+
+def pad_stack(curves: list[list[float]]) -> np.ndarray:
+    max_len = max(len(c) for c in curves)
+    padded = []
+    for c in curves:
+        arr = np.array(c, dtype=float)
+        if len(arr) < max_len:
+            arr = np.concatenate([arr, np.full(max_len - len(arr), arr[-1])])
+        padded.append(arr)
+    return np.stack(padded)
+
+
+def aggregate(curves: list[list[float]]) -> dict[str, np.ndarray] | None:
+    valid = [c for c in curves if len(c) > 0]
+    if not valid:
+        return None
+    mat = pad_stack(valid)
+    return {"mean": mat.mean(axis=0), "std": mat.std(axis=0)}
+
+
+def is_still_descending(curve: np.ndarray, tail: float = 0.3) -> bool:
+    n = len(curve)
+    tail_seg = curve[int(n * (1 - tail)) :]
+    return tail_seg[-1] < tail_seg[0] * 0.97
+
 
 def _normalize_raw_curves(raw: object) -> list[dict]:
     if not isinstance(raw, list):
@@ -41,14 +101,12 @@ def _normalize_raw_curves(raw: object) -> list[dict]:
             continue
 
         train_loss = entry.get("train_loss", [])
-        val_loss = entry.get("val_loss", [])
         strategy = entry.get("strategy") or entry.get("name") or f"Run {i+1}"
         model = entry.get("model") or "LSTM"
 
         train_loss = list(train_loss) if train_loss is not None else []
-        val_loss = list(val_loss) if val_loss is not None else []
 
-        if len(train_loss) == 0 and len(val_loss) == 0:
+        if len(train_loss) == 0:
             continue
 
         normalized.append(
@@ -56,7 +114,6 @@ def _normalize_raw_curves(raw: object) -> list[dict]:
                 "strategy": str(strategy),
                 "model": str(model),
                 "train_loss": train_loss,
-                "val_loss": val_loss,
             }
         )
 
@@ -80,7 +137,6 @@ def _load_from_csv(path: Path) -> list[dict]:
             "strategy": str(run),
             "model": str(part["model"].iloc[0]) if "model" in part.columns and len(part["model"]) > 0 else "LSTM",
             "train_loss": part["train_loss"].tolist(),
-            "val_loss": part["val_loss"].tolist() if "val_loss" in part.columns else [],
         }
         curves.append(entry)
     return curves
@@ -129,45 +185,101 @@ def resolve_curves(data_path: str | None = None) -> list[dict]:
 def plot_curves(curves: list[dict], out: str = "lstm_loss_curves_fixed.png", show: bool = True) -> None:
     curves = _normalize_raw_curves(curves)
 
-    fig, ax = plt.subplots(figsize=(7, 5))
-    ax_val = ax.twinx()
-    colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-    lines = []
+    observed_names = []
+    for entry in curves:
+        name = entry.get("strategy") or entry.get("name") or "Unknown"
+        if name not in observed_names:
+            observed_names.append(name)
 
-    for i, curve in enumerate(curves):
-        train_loss = curve.get("train_loss", [])
-        val_loss = curve.get("val_loss", [])
-        strategy = curve.get("strategy", curve.get("name", f"Run {i+1}"))
-        model = curve.get("model", "LSTM")
-        name = f"{strategy} ({model})"
-        color = colors[i % len(colors)]
+    plot_order = [s for s in STRATEGY_NAMES if s in observed_names]
+    plot_order += [s for s in observed_names if s not in plot_order]
 
-        if len(train_loss) > 0:
-            x_train = np.arange(1, len(train_loss) + 1)
-            line, = ax.plot(x_train, train_loss, color=color, linewidth=1.7, label=f"Training loss, {name}")
-            lines.append(line)
+    grouped: dict[str, list[list[float]]] = {s: [] for s in plot_order}
+    for entry in curves:
+        name = entry.get("strategy") or entry.get("name") or "Unknown"
+        loss = entry.get("train_loss", [])
+        if name in grouped and len(loss) > 0:
+            grouped[name].append(loss)
 
-        if len(val_loss) > 0 and not np.all(pd.isna(val_loss)):
-            x_val = np.arange(1, len(val_loss) + 1)
-            line, = ax_val.plot(
-                x_val,
-                val_loss,
-                color=color,
-                linestyle="--",
-                linewidth=1.7,
-                alpha=0.9,
-                label=f"Validation loss, {name}",
+    for name, strategy_curves in grouped.items():
+        agg = aggregate(strategy_curves)
+        if agg is None:
+            continue
+        if is_still_descending(agg["mean"]):
+            print(
+                f"[WARN] '{name}' mean loss still descending at final epoch - "
+                "consider more epochs or verify data."
             )
-            lines.append(line)
 
-    ax.set_xlabel("Epoch")
-    ax.set_ylabel("Training loss")
-    ax_val.set_ylabel("Validation loss")
-    ax.grid(True, color="#b0b0b0", linewidth=1, alpha=0.65)
+    plt.style.use("ggplot")
+    fig, ax = plt.subplots(figsize=(10, 6))
+    handles = []
+    warm_y_positions = []
+    fallback_colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
-    ax.legend(handles=lines, loc="upper right", frameon=True, framealpha=0.85, facecolor="white")
+    for i, name in enumerate(plot_order):
+        strategy_curves = grouped[name]
+        agg = aggregate(strategy_curves)
+        if agg is None:
+            print(f"[INFO] No data for strategy '{name}' - skipped.")
+            continue
 
-    fig.tight_layout()
+        y = smooth(agg["mean"])
+        y_std = agg["std"] * STD_SCALE
+        x = np.arange(1, len(y) + 1)
+        color = COLORS.get(name, fallback_colors[i % len(fallback_colors)])
+
+        line, = ax.plot(x, y, linewidth=2.2, color=color, label=name)
+        ax.fill_between(
+            x,
+            np.clip(y - y_std, Y_MIN, Y_MAX),
+            np.clip(y + y_std, Y_MIN, Y_MAX),
+            color=color,
+            alpha=0.12,
+        )
+        handles.append(line)
+
+        if name in WARM_INIT_STRATEGIES:
+            warm_y_positions.append(float(y[0]))
+
+    if warm_y_positions:
+        annotation_y = min(warm_y_positions) - 0.12
+        ax.annotate(
+            "Warm init (pretrained start)",
+            xy=(1.15, min(warm_y_positions)),
+            xytext=(2.5, annotation_y + 0.35),
+            fontsize=8.5,
+            color="#555555",
+            arrowprops=dict(arrowstyle="-|>", color="#888888", lw=0.9),
+            va="top",
+        )
+
+    max_epochs = (
+        max(len(c) for strategy_curves in grouped.values() for c in strategy_curves)
+        if any(grouped.values())
+        else 10
+    )
+
+    ax.set_xlim(1, max_epochs)
+    ax.set_ylim(Y_MIN, Y_MAX)
+    ax.set_title("LSTM Training Loss Curves", fontsize=15, pad=14)
+    ax.set_xlabel("Epoch", fontsize=13)
+    ax.set_ylabel("Training Loss (MSE)", fontsize=13)
+    ax.grid(True, alpha=0.3, linestyle="--")
+
+    ax.axhline(1.0, color="black", linewidth=0.6, linestyle=":", alpha=0.4)
+    ax.text(max_epochs - 0.1, 1.02, "loss = 1.0", fontsize=7.5, color="#777777", ha="right")
+
+    ax.legend(
+        handles=handles,
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.14),
+        ncol=3,
+        frameon=False,
+        fontsize=10,
+    )
+
+    plt.tight_layout()
     plt.savefig(out, dpi=300, bbox_inches="tight")
     if show:
         plt.show()

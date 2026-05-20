@@ -178,24 +178,7 @@ def resolve_curves(data_path: str | None = None) -> list[dict]:
     )
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Plot real MLP loss curves")
-    parser.add_argument(
-        "--data",
-        type=str,
-        default=None,
-        help="Path to real curves file (.json/.pkl/.csv).",
-    )
-    parser.add_argument(
-        "--out",
-        type=str,
-        default="mlp_loss_curves_fixed.png",
-        help="Output image file path.",
-    )
-    args = parser.parse_args()
-
-    curves_source = resolve_curves(args.data)
-
+def plot_curves(curves_source: list[dict], out: str = "mlp_loss_curves_fixed.png", show: bool = True) -> None:
     observed_names = []
     for entry in curves_source:
         name = entry.get("strategy") or entry.get("name") or "Unknown"
@@ -262,7 +245,7 @@ def main() -> None:
     if warm_y_positions:
         annotation_y = min(warm_y_positions) - 0.12
         ax.annotate(
-            "? Warm init (pretrained start)",
+            "Warm init (pretrained start)",
             xy=(1.15, min(warm_y_positions)),
             xytext=(2.5, annotation_y + 0.35),
             fontsize=8.5,
@@ -301,10 +284,33 @@ def main() -> None:
     )
 
     plt.tight_layout()
-    plt.savefig(args.out, dpi=300, bbox_inches="tight")
-    plt.show()
+    plt.savefig(out, dpi=300, bbox_inches="tight")
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
 
-    print(f"Saved: {args.out}")
+    print(f"Saved: {out}")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Plot real MLP loss curves")
+    parser.add_argument(
+        "--data",
+        type=str,
+        default=None,
+        help="Path to real curves file (.json/.pkl/.csv).",
+    )
+    parser.add_argument(
+        "--out",
+        type=str,
+        default="mlp_loss_curves_fixed.png",
+        help="Output image file path.",
+    )
+    args = parser.parse_args()
+
+    curves_source = resolve_curves(args.data)
+    plot_curves(curves_source, out=args.out, show=True)
 
 
 if __name__ == "__main__":

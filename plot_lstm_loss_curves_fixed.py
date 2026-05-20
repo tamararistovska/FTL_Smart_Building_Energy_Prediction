@@ -126,13 +126,8 @@ def resolve_curves(data_path: str | None = None) -> list[dict]:
     )
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Plot real LSTM loss curves")
-    parser.add_argument("--data", type=str, default=None, help="Path to real curves file (.json/.pkl/.csv).")
-    parser.add_argument("--out", type=str, default="lstm_loss_curves_fixed.png", help="Output image path.")
-    args = parser.parse_args()
-
-    curves = resolve_curves(args.data)
+def plot_curves(curves: list[dict], out: str = "lstm_loss_curves_fixed.png", show: bool = True) -> None:
+    curves = _normalize_raw_curves(curves)
 
     fig, ax = plt.subplots(figsize=(7, 5))
     ax_val = ax.twinx()
@@ -173,9 +168,22 @@ def main() -> None:
     ax.legend(handles=lines, loc="upper right", frameon=True, framealpha=0.85, facecolor="white")
 
     fig.tight_layout()
-    plt.savefig(args.out, dpi=300, bbox_inches="tight")
-    plt.show()
-    print(f"Saved: {args.out}")
+    plt.savefig(out, dpi=300, bbox_inches="tight")
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+    print(f"Saved: {out}")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Plot real LSTM loss curves")
+    parser.add_argument("--data", type=str, default=None, help="Path to real curves file (.json/.pkl/.csv).")
+    parser.add_argument("--out", type=str, default="lstm_loss_curves_fixed.png", help="Output image path.")
+    args = parser.parse_args()
+
+    curves = resolve_curves(args.data)
+    plot_curves(curves, out=args.out, show=True)
 
 
 if __name__ == "__main__":

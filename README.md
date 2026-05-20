@@ -43,6 +43,7 @@ Run notebooks in this order (all notebooks are in the project root):
 2. `02_basic_strategies.ipynb`
 3. `03_mlp.ipynb`
 4. `04_lstm.ipynb`
+5. `06_patchtst.ipynb` (reviewer experiment)
 
 ## 3. Training / Loading Modes
 Both `03_mlp.ipynb` and `04_lstm.ipynb` support two modes:

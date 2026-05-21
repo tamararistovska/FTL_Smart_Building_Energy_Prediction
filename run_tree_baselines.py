@@ -53,7 +53,10 @@ except Exception as e:
     ) from e
 
 
-def _resolve_features() -> list[str]:
+def _resolve_features(features: list[str] | None = None) -> list[str]:
+    if features is not None and len(features) > 0:
+        return list(features)
+
     if "FEATURES" in globals() and isinstance(FEATURES, (list, tuple)) and len(FEATURES) > 0:
         return list(FEATURES)
 
@@ -181,16 +184,27 @@ def _summary_row(name: str, df: pd.DataFrame) -> dict[str, float | str]:
     }
 
 
-def run_tree_baselines(seed: int = 42) -> None:
-    if "client_data" not in globals() or "usable_bids" not in globals() or "TARGET" not in globals():
-        raise RuntimeError("Missing required globals: client_data, usable_bids, TARGET")
+def run_tree_baselines(
+    seed: int = 42,
+    client_data: dict | None = None,
+    usable_bids: list | None = None,
+    target: str | None = None,
+    features: list[str] | None = None,
+    cold_set: set | None = None,
+    source_bids: list | None = None,
+) -> dict[str, pd.DataFrame]:
+    client_data = client_data if client_data is not None else globals().get("client_data")
+    usable_bids = usable_bids if usable_bids is not None else globals().get("usable_bids")
+    target = target if target is not None else globals().get("TARGET")
 
-    features = _resolve_features()
-    target = TARGET
+    if client_data is None or usable_bids is None or target is None:
+        raise RuntimeError("Missing required inputs: client_data, usable_bids, target")
+
+    features = _resolve_features(features)
 
     bids = list(usable_bids)
-    cs = set(globals().get("cold_set", set()))
-    src_bids = list(globals().get("source_bids", bids))
+    cs = set(cold_set if cold_set is not None else globals().get("cold_set", set()))
+    src_bids = list(source_bids if source_bids is not None else globals().get("source_bids", bids))
 
     if len(src_bids) == 0:
         src_bids = bids
@@ -235,6 +249,13 @@ def run_tree_baselines(seed: int = 42) -> None:
     ).sort_values("Overall", ascending=True)
     print("\nTree baseline summary:")
     print(globals()["df_tree_baseline_summary"].to_string(index=False))
+    return {
+        "df_central_xgb": globals()["df_central_xgb"],
+        "df_local_xgb": globals()["df_local_xgb"],
+        "df_central_lgbm": globals()["df_central_lgbm"],
+        "df_local_lgbm": globals()["df_local_lgbm"],
+        "df_tree_baseline_summary": globals()["df_tree_baseline_summary"],
+    }
 
 
 if __name__ == "__main__":

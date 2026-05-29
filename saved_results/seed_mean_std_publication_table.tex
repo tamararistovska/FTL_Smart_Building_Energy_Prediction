@@ -1,0 +1,28 @@
+\begin{table}[htbp]
+\centering
+\caption{Average performance across random seeds reported as mean $\\pm$ standard deviation.}
+\label{tab:seed_mean_std_results}
+\begin{tabular}{llrrccccc}
+\hline
+Model & Strategy & Seeds & N seeds & Overall MAE & Warm MAE & Cold MAE & CVRMSE (\\%) & WAPE (\\%) \\ \hline
+MLP & C. Centralized & 42, 123, 2024 & 3 & 0.137 $\\textbackslash{}\\textbackslash{}pm$ 0.017 & 0.124 $\\textbackslash{}\\textbackslash{}pm$ 0.017 & 0.186 $\\textbackslash{}\\textbackslash{}pm$ 0.022 & 16.443 $\\textbackslash{}\\textbackslash{}pm$ 1.509 & 12.625 $\\textbackslash{}\\textbackslash{}pm$ 1.417 \\
+MLP & 0. Local-only & 42, 123, 2024 & 3 & 0.263 $\\textbackslash{}\\textbackslash{}pm$ 0.005 & 0.193 $\\textbackslash{}\\textbackslash{}pm$ 0.006 & 0.542 $\\textbackslash{}\\textbackslash{}pm$ 0.008 & 28.966 $\\textbackslash{}\\textbackslash{}pm$ 0.477 & 22.737 $\\textbackslash{}\\textbackslash{}pm$ 0.433 \\
+MLP & 1b. FedAvg (No Pretrain) & 42, 123, 2024 & 3 & 0.326 $\\textbackslash{}\\textbackslash{}pm$ 0.028 & 0.309 $\\textbackslash{}\\textbackslash{}pm$ 0.025 & 0.393 $\\textbackslash{}\\textbackslash{}pm$ 0.053 & 39.133 $\\textbackslash{}\\textbackslash{}pm$ 3.157 & 33.671 $\\textbackslash{}\\textbackslash{}pm$ 3.457 \\
+MLP & 1. FTL & 42, 123, 2024 & 3 & 0.299 $\\textbackslash{}\\textbackslash{}pm$ 0.061 & 0.289 $\\textbackslash{}\\textbackslash{}pm$ 0.063 & 0.340 $\\textbackslash{}\\textbackslash{}pm$ 0.056 & 33.141 $\\textbackslash{}\\textbackslash{}pm$ 5.413 & 27.688 $\\textbackslash{}\\textbackslash{}pm$ 5.176 \\
+MLP & 2. Personalized-FL & 42, 123, 2024 & 3 & 0.524 $\\textbackslash{}\\textbackslash{}pm$ 0.045 & 0.514 $\\textbackslash{}\\textbackslash{}pm$ 0.052 & 0.562 $\\textbackslash{}\\textbackslash{}pm$ 0.024 & 52.868 $\\textbackslash{}\\textbackslash{}pm$ 4.673 & 45.740 $\\textbackslash{}\\textbackslash{}pm$ 5.041 \\
+MLP & 3. Progressive Unfreezing & 42, 123, 2024 & 3 & 0.298 $\\textbackslash{}\\textbackslash{}pm$ 0.047 & 0.294 $\\textbackslash{}\\textbackslash{}pm$ 0.046 & 0.315 $\\textbackslash{}\\textbackslash{}pm$ 0.049 & 34.379 $\\textbackslash{}\\textbackslash{}pm$ 4.384 & 29.189 $\\textbackslash{}\\textbackslash{}pm$ 4.104 \\
+MLP & 4. Instance-TL & 42, 123, 2024 & 3 & 0.161 $\\textbackslash{}\\textbackslash{}pm$ 0.007 & 0.165 $\\textbackslash{}\\textbackslash{}pm$ 0.013 & 0.146 $\\textbackslash{}\\textbackslash{}pm$ 0.021 & 19.221 $\\textbackslash{}\\textbackslash{}pm$ 0.396 & 15.370 $\\textbackslash{}\\textbackslash{}pm$ 0.563 \\
+MLP & 5. Fed-SimTL & 42, 123, 2024 & 3 & 0.150 $\\textbackslash{}\\textbackslash{}pm$ 0.004 & 0.151 $\\textbackslash{}\\textbackslash{}pm$ 0.005 & 0.148 $\\textbackslash{}\\textbackslash{}pm$ 0.031 & 17.948 $\\textbackslash{}\\textbackslash{}pm$ 1.000 & 14.042 $\\textbackslash{}\\textbackslash{}pm$ 0.720 \\
+MLP & 6. FedMetaTL & 42, 123, 2024 & 3 & 0.306 $\\textbackslash{}\\textbackslash{}pm$ 0.031 & 0.301 $\\textbackslash{}\\textbackslash{}pm$ 0.033 & 0.325 $\\textbackslash{}\\textbackslash{}pm$ 0.026 & 32.575 $\\textbackslash{}\\textbackslash{}pm$ 1.313 & 26.993 $\\textbackslash{}\\textbackslash{}pm$ 1.047 \\
+PatchTST & C. Centralized & 42 & 1 & 14.269 & 13.615 & 16.887 & 22.879 & 16.829 \\
+PatchTST & 0. Local-only & 42 & 1 & 38.758 & 27.968 & 81.915 & 37.676 & 29.435 \\
+PatchTST & 1b. FedAvg (No Pretrain) & 42 & 1 & 90.892 & 82.345 & 125.080 & 134.725 & 127.764 \\
+PatchTST & 1. FTL & 42 & 1 & 48.641 & 43.423 & 69.514 & 95.151 & 85.086 \\
+PatchTST & 2. Personalized-FL & 42 & 1 & 43.444 & 25.097 & 116.834 & 58.190 & 53.689 \\
+PatchTST & 3. Progressive Unfreezing & 42 & 1 & 68.497 & 61.671 & 95.802 & 69.638 & 63.834 \\
+PatchTST & 4. Instance-TL & 42 & 1 & 52.119 & 45.084 & 80.261 & 115.890 & 111.637 \\
+PatchTST & 5. Fed-SimTL & 42 & 1 & 42.962 & 38.194 & 62.037 & 62.915 & 56.502 \\
+PatchTST & 6. FedMetaTL & 42 & 1 & 60.224 & 53.891 & 85.558 & 70.117 & 65.352 \\
+\hline
+\end{tabular}
+\end{table}

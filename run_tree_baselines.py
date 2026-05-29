@@ -20,11 +20,12 @@ Outputs in globals:
 - df_local_xgb, df_central_xgb
 - df_local_lgbm, df_central_lgbm
 
-Saved CSVs (if save_dataframe exists, uses it):
-- tree_local_only_xgb
-- tree_centralized_xgb
-- tree_local_only_lgbm
-- tree_centralized_lgbm
+Saved CSVs:
+- saved_results/{model_label}_tree_centralized_xgb_seed{seed}.csv
+- saved_results/{model_label}_tree_local_only_xgb_seed{seed}.csv
+- saved_results/{model_label}_tree_centralized_lgbm_seed{seed}.csv
+- saved_results/{model_label}_tree_local_only_lgbm_seed{seed}.csv
+- saved_results/{model_label}_tree_baseline_summary_seed{seed}.csv
 """
 
 from __future__ import annotations
@@ -144,16 +145,13 @@ def _run_local_only(kind: str, bids: list, client_data: dict, features: list[str
     return pd.DataFrame(rows, columns=["building_id", "mae", "rmse", "cvrmse", "wape", "cold_start"])
 
 
-def _save_df(df: pd.DataFrame, name: str) -> None:
-    if "save_dataframe" in globals() and callable(save_dataframe):
-        save_dataframe(df, name)
-        return
-
-    out_dir = Path("saved_models")
+def _save_df(df: pd.DataFrame, name: str, results_dir: str | Path = "saved_results") -> Path:
+    out_dir = Path(results_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"{name}.csv"
     df.to_csv(path, index=False)
     print(f"Saved: {path}")
+    return path
 
 
 def _print_summary(title: str, df: pd.DataFrame) -> None:
@@ -186,6 +184,8 @@ def _summary_row(name: str, df: pd.DataFrame) -> dict[str, float | str]:
 
 def run_tree_baselines(
     seed: int = 42,
+    model_label: str = "model",
+    results_dir: str | Path = "saved_results",
     client_data: dict | None = None,
     usable_bids: list | None = None,
     target: str | None = None,
@@ -209,6 +209,7 @@ def run_tree_baselines(
     if len(src_bids) == 0:
         src_bids = bids
 
+    model_label = str(model_label).lower()
     pooled_train = pd.concat([client_data[bid]["train"] for bid in src_bids], ignore_index=True)
 
     # XGBoost
@@ -219,8 +220,8 @@ def run_tree_baselines(
     globals()["df_central_xgb"] = _per_building_eval_with_model(xgb_global, bids, client_data, features, target, cs)
     globals()["df_local_xgb"] = _run_local_only("xgb", bids, client_data, features, target, cs, seed)
 
-    _save_df(globals()["df_central_xgb"], "tree_centralized_xgb")
-    _save_df(globals()["df_local_xgb"], "tree_local_only_xgb")
+    _save_df(globals()["df_central_xgb"], f"{model_label}_tree_centralized_xgb_seed{int(seed)}", results_dir)
+    _save_df(globals()["df_local_xgb"], f"{model_label}_tree_local_only_xgb_seed{int(seed)}", results_dir)
 
     _print_summary("Centralized XGBoost", globals()["df_central_xgb"])
     _print_summary("Local-only XGBoost", globals()["df_local_xgb"])
@@ -233,20 +234,23 @@ def run_tree_baselines(
     globals()["df_central_lgbm"] = _per_building_eval_with_model(lgbm_global, bids, client_data, features, target, cs)
     globals()["df_local_lgbm"] = _run_local_only("lgbm", bids, client_data, features, target, cs, seed)
 
-    _save_df(globals()["df_central_lgbm"], "tree_centralized_lgbm")
-    _save_df(globals()["df_local_lgbm"], "tree_local_only_lgbm")
+    _save_df(globals()["df_central_lgbm"], f"{model_label}_tree_centralized_lgbm_seed{int(seed)}", results_dir)
+    _save_df(globals()["df_local_lgbm"], f"{model_label}_tree_local_only_lgbm_seed{int(seed)}", results_dir)
 
     _print_summary("Centralized LightGBM", globals()["df_central_lgbm"])
     _print_summary("Local-only LightGBM", globals()["df_local_lgbm"])
 
     globals()["df_tree_baseline_summary"] = pd.DataFrame(
         [
-            _summary_row("C. Centralized-XGB", globals()["df_central_xgb"]),
-            _summary_row("0. Local-only-XGB", globals()["df_local_xgb"]),
-            _summary_row("C. Centralized-LGBM", globals()["df_central_lgbm"]),
-            _summary_row("0. Local-only-LGBM", globals()["df_local_lgbm"]),
+            _summary_row("C. Centralized-XGBoost", globals()["df_central_xgb"]),
+            _summary_row("0. Local-only-XGBoost", globals()["df_local_xgb"]),
+            _summary_row("C. Centralized-LightGBM", globals()["df_central_lgbm"]),
+            _summary_row("0. Local-only-LightGBM", globals()["df_local_lgbm"]),
         ]
     ).sort_values("Overall", ascending=True)
+    globals()["df_tree_baseline_summary"].insert(0, "Model", model_label.upper())
+    globals()["df_tree_baseline_summary"].insert(1, "Seed", int(seed))
+    _save_df(globals()["df_tree_baseline_summary"], f"{model_label}_tree_baseline_summary_seed{int(seed)}", results_dir)
     print("\nTree baseline summary:")
     print(globals()["df_tree_baseline_summary"].to_string(index=False))
     return {

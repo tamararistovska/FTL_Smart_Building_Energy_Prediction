@@ -1,0 +1,12 @@
+model,seed,strategy,raw_strategy,train_time_sec,eval_time_sec,total_time_sec,train_calls,eval_calls,rounds,local_epochs,sample_frac,sampled_clients_per_round,source_clients,usable_clients
+PatchTST,42,1. FTL,FTL; PatchTST All6 FTL; PatchTST FTL cold-days sensitivity; PatchTST FTL pretrain-sweep,9353.056295501941,6.825758999329992,9359.882054501271,2820,360,10,10,0.25,12,48,60
+PatchTST,42,4. Instance-TL,Instance-TL; PatchTST All6 Instance-TL,8123.769240299007,0.0,8123.769240299007,1170,0,10,10,0.25,12,48,60
+PatchTST,42,6. FedMetaTL,FedMetaTL; PatchTST All6 FedMetaTL; PatchTST All6 meta-inner; meta-inner,4066.953532700485,59.734093998908065,4126.687626699393,1650,3300,10,10,0.25,12,48,60
+PatchTST,42,2. Personalized-FL,PatchTST All6 Personalized-FL; Personalized-FL,3828.2245192999253,0.0,3828.2245192999253,1170,0,10,10,0.25,12,48,60
+PatchTST,42,5. Fed-SimTL,Fed-SimTL; PatchTST All6 Fed-SimTL,3806.01255030022,0.0,3806.01255030022,1170,0,10,10,0.25,12,48,60
+PatchTST,42,3. Progressive Unfreezing,PatchTST All6 Progressive; Progressive Unfreezing,3173.7880941993208,0.0,3173.7880941993208,1170,0,10,10,0.25,12,48,60
+PatchTST,42,0. Local-only,0. Local-only-PatchTST,1908.57264210016,2.3329012998146936,1910.9055433999747,60,120,10,10,0.25,12,48,60
+PatchTST,42,1b. FedAvg (No Pretrain),1b. FedAvg-NoPretrain-PatchTST,475.1915318001993,0.0,475.1915318001993,150,0,10,10,0.25,12,48,60
+PatchTST,42,PatchTST pretrain-sweep,PatchTST pretrain-sweep,212.32072150002932,0.0,212.32072150002932,5,0,10,10,0.25,12,48,60
+PatchTST,42,C. Centralized,C. Centralized-PatchTST,83.09085499995854,1.1617689998238347,84.25262399978237,1,60,10,10,0.25,12,48,60
+PatchTST,42,Pretrain,Pretrain-PatchTST,82.04555400001118,0.0,82.04555400001118,1,0,10,10,0.25,12,48,60

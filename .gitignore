@@ -219,7 +219,7 @@ __pycache__/
 venv/
 
 # # Large artifacts
-# *.pt
-# *.pkl
-# *.csv
+*.pt
+*.pkl
+*.csv
 *.zip

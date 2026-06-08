@@ -4,5 +4,7 @@ matplotlib
 scikit-learn
 scipy
 torch
+lightgbm
+xgboost
 ipykernel
 nbconvert

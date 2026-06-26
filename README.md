@@ -1,4 +1,4 @@
-# FTL_SMART_BUILDING / MLP + LSTM Energy Forecasting (ASHRAE)
+# FTL_SMART_BUILDING / MLP + LSTM + PATCHTST Energy Forecasting (ASHRAE)
 
 ## 1. Run Preprocessing First
 Before running any notebook, generate the cleaned datasets.
